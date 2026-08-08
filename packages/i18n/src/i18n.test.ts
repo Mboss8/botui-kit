@@ -24,6 +24,12 @@ describe('createI18n', () => {
     )).toBe('Hello, &lt;Alice &amp; Bob&gt;');
   });
 
+  it('preserves template placeholders when no business data is supplied', () => {
+    const i18n = createI18n(registry);
+
+    expect(i18n.resolve({ i18n: 'greeting.hello' }, 'en-US')).toBe('Hello, {{ user.name }}');
+  });
+
   it('falls back from a regional locale to its base language', () => {
     const i18n = createI18n(registry);
 
