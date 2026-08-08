@@ -10,6 +10,8 @@
   "references": [
     { "path": "../schema" },
     { "path": "../core" },
+    { "path": "../i18n" },
+    { "path": "../themes" },
     { "path": "../pagination" },
     { "path": "../telegram" }
   ]
