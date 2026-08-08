@@ -7,6 +7,8 @@ import type {
 import { interpolatePlain } from './template.js';
 import { createFallbackTextResolver, type TextResolver } from './text.js';
 
+const TELEGRAM_RICH_TEXT_LIMIT = 32768;
+
 export type TelegramNeutralRichTableCell = {
   text: string;
   is_header?: true;
@@ -185,6 +187,50 @@ function mapBlock(block: BotUIRichBlock, context: RichContext): TelegramNeutralR
   }
 }
 
+function characterCount(value: string): number {
+  return Array.from(value).length;
+}
+
+function countRichTextCharacters(block: TelegramNeutralRichBlock): number {
+  switch (block.type) {
+    case 'paragraph':
+    case 'heading':
+    case 'pre':
+    case 'footer':
+      return characterCount(block.text);
+
+    case 'divider':
+      return 0;
+
+    case 'blockquote':
+      return (block.credit ? characterCount(block.credit) : 0)
+        + block.blocks.reduce((total, child) => total + countRichTextCharacters(child), 0);
+
+    case 'list':
+      return block.items.reduce(
+        (total, item) => total + item.blocks.reduce(
+          (itemTotal, child) => itemTotal + countRichTextCharacters(child),
+          0
+        ),
+        0
+      );
+
+    case 'table':
+      return (block.caption ? characterCount(block.caption) : 0)
+        + block.cells.reduce(
+          (total, row) => total + row.reduce(
+            (rowTotal, cell) => rowTotal + characterCount(cell.text),
+            0
+          ),
+          0
+        );
+
+    case 'details':
+      return characterCount(block.summary)
+        + block.blocks.reduce((total, child) => total + countRichTextCharacters(child), 0);
+  }
+}
+
 export function renderRich(
   request: BotUIRenderRequest,
   options: RenderRichOptions = {}
@@ -195,9 +241,17 @@ export function renderRich(
     defaultHeadingSize: options.defaultHeadingSize ?? 2
   };
 
-  const richMessage: RenderedRichContent['richMessage'] = {
-    blocks: (request.content.blocks ?? []).map((block) => mapBlock(block, context))
-  };
+  const blocks = (request.content.blocks ?? []).map((block) => mapBlock(block, context));
+  const totalCharacters = blocks.reduce(
+    (total, block) => total + countRichTextCharacters(block),
+    0
+  );
+
+  if (totalCharacters > TELEGRAM_RICH_TEXT_LIMIT) {
+    throw new Error(`Rich Message text exceeds Telegram ${TELEGRAM_RICH_TEXT_LIMIT}-character limit`);
+  }
+
+  const richMessage: RenderedRichContent['richMessage'] = { blocks };
 
   if (request.content.is_rtl) {
     richMessage.is_rtl = true;
