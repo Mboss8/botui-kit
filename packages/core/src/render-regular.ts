@@ -9,6 +9,7 @@ export type RenderedContent = {
 
 export type RenderRegularOptions = {
   resolveText?: TextResolver;
+  divider?: string;
 };
 
 export function renderRegular(
@@ -34,7 +35,7 @@ export function renderRegular(
   }
 
   if (content.divider) {
-    blocks.push('──────────');
+    blocks.push(options.divider ?? '──────────');
   }
 
   if (content.footer) {
