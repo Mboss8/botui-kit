@@ -15,35 +15,35 @@ export type LocalizedText = z.infer<typeof localizedTextSchema>;
 
 export type BotUIRichTableCell = {
   text: LocalizedText;
-  header?: boolean;
-  colspan?: number;
-  rowspan?: number;
-  align?: 'left' | 'center' | 'right';
-  valign?: 'top' | 'middle' | 'bottom';
+  header?: boolean | undefined;
+  colspan?: number | undefined;
+  rowspan?: number | undefined;
+  align?: 'left' | 'center' | 'right' | undefined;
+  valign?: 'top' | 'middle' | 'bottom' | undefined;
 };
 
 export type BotUIRichListItem = {
   text: LocalizedText;
-  checked?: boolean;
-  value?: number;
+  checked?: boolean | undefined;
+  value?: number | undefined;
 };
 
 export type BotUIRichBlock =
-  | { type: 'heading'; text: LocalizedText; size?: number }
+  | { type: 'heading'; text: LocalizedText; size?: number | undefined }
   | { type: 'paragraph'; text: LocalizedText }
-  | { type: 'preformatted'; text: LocalizedText; language?: string }
+  | { type: 'preformatted'; text: LocalizedText; language?: string | undefined }
   | { type: 'footer'; text: LocalizedText }
   | { type: 'divider' }
-  | { type: 'quote'; blocks: BotUIRichBlock[]; credit?: LocalizedText }
-  | { type: 'list'; ordered?: boolean; items: BotUIRichListItem[] }
+  | { type: 'quote'; blocks: BotUIRichBlock[]; credit?: LocalizedText | undefined }
+  | { type: 'list'; ordered?: boolean | undefined; items: BotUIRichListItem[] }
   | {
       type: 'table';
       rows: BotUIRichTableCell[][];
-      bordered?: boolean;
-      striped?: boolean;
-      caption?: LocalizedText;
+      bordered?: boolean | undefined;
+      striped?: boolean | undefined;
+      caption?: LocalizedText | undefined;
     }
-  | { type: 'details'; summary: LocalizedText; blocks: BotUIRichBlock[]; open?: boolean };
+  | { type: 'details'; summary: LocalizedText; blocks: BotUIRichBlock[]; open?: boolean | undefined };
 
 const tableCellSchema: z.ZodType<BotUIRichTableCell> = z.object({
   text: localizedTextSchema,
