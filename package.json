@@ -8,9 +8,10 @@
     "node": ">=24"
   },
   "scripts": {
+    "pretest": "pnpm -r --sort build",
     "test": "vitest run",
-    "typecheck": "tsc -b packages/*/tsconfig.json --pretty false",
-    "build": "tsc -b packages/*/tsconfig.json --pretty false"
+    "typecheck": "pnpm -r --sort typecheck",
+    "build": "pnpm -r --sort build"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
