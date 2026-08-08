@@ -159,6 +159,48 @@ export const cursorPaginationSchema = z.object({
 
 export const paginationSchema = z.union([pagePaginationSchema, cursorPaginationSchema]);
 
+type RichStructureStats = {
+  units: number;
+  maxDepth: number;
+};
+
+function inspectRichStructure(
+  blocks: BotUIRichBlock[],
+  depth = 1
+): RichStructureStats {
+  let units = 0;
+  let maxDepth = 0;
+
+  for (const block of blocks) {
+    units += 1;
+    maxDepth = Math.max(maxDepth, depth);
+
+    if (block.type === 'quote' || block.type === 'details') {
+      const nested = inspectRichStructure(block.blocks, depth + 1);
+      units += nested.units;
+      maxDepth = Math.max(maxDepth, nested.maxDepth);
+      continue;
+    }
+
+    if (block.type === 'list') {
+      // Each semantic list item becomes an InputRichBlockListItem containing
+      // one paragraph InputRichBlock in the Telegram payload.
+      units += block.items.length * 2;
+      if (block.items.length > 0) {
+        maxDepth = Math.max(maxDepth, depth + 1);
+      }
+      continue;
+    }
+
+    if (block.type === 'table') {
+      // Telegram counts table rows toward the Rich Message structural limit.
+      units += block.rows.length;
+    }
+  }
+
+  return { units, maxDepth };
+}
+
 export const renderRequestSchema = z.object({
   version: z.literal('1').default('1'),
   screen: z.string().min(1),
@@ -168,6 +210,39 @@ export const renderRequestSchema = z.object({
   content: contentSchema,
   actions: z.array(buttonSchema).default([]),
   pagination: paginationSchema.optional()
+}).superRefine((value, ctx) => {
+  const blocks = value.content.blocks;
+
+  if (value.content.mode === 'rich' && (!blocks || blocks.length === 0)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'blocks'],
+      message: 'rich mode requires at least one rich block'
+    });
+    return;
+  }
+
+  if (!blocks || blocks.length === 0) {
+    return;
+  }
+
+  const stats = inspectRichStructure(blocks);
+
+  if (stats.units > 500) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'blocks'],
+      message: 'rich message exceeds Telegram 500 structural unit limit'
+    });
+  }
+
+  if (stats.maxDepth > 16) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'blocks'],
+      message: 'rich message exceeds Telegram 16-level nesting limit'
+    });
+  }
 });
 
 export type BotUIButton = z.infer<typeof buttonSchema>;
