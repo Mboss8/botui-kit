@@ -36,7 +36,7 @@ describe('layoutButtons', () => {
     ]);
   });
 
-  it('uses resolved localized labels for long-text layout decisions', () => {
+  it('resolves localized labels before layout and returns sendable string buttons', () => {
     const localized = button(
       { i18n: 'very.long', fallback: '这是一个非常非常长的按钮文字' },
       'report.open'
@@ -47,7 +47,7 @@ describe('layoutButtons', () => {
       resolveText: createFallbackTextResolver(),
       longTextThreshold: 8
     })).toEqual([
-      [localized],
+      [{ ...localized, text: '这是一个非常非常长的按钮文字' }],
       [ordinary]
     ]);
   });
