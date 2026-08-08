@@ -3,8 +3,110 @@ import { z } from 'zod';
 export const renderModeSchema = z.enum(['auto', 'regular', 'rich', 'media', 'miniapp']);
 export const buttonStyleSchema = z.enum(['primary', 'success', 'danger', 'default']);
 
+export const localizedTextSchema = z.union([
+  z.string(),
+  z.object({
+    i18n: z.string().min(1),
+    fallback: z.string().optional()
+  }).strict()
+]);
+
+export type LocalizedText = z.infer<typeof localizedTextSchema>;
+
+export type BotUIRichTableCell = {
+  text: LocalizedText;
+  header?: boolean;
+  colspan?: number;
+  rowspan?: number;
+  align?: 'left' | 'center' | 'right';
+  valign?: 'top' | 'middle' | 'bottom';
+};
+
+export type BotUIRichListItem = {
+  text: LocalizedText;
+  checked?: boolean;
+  value?: number;
+};
+
+export type BotUIRichBlock =
+  | { type: 'heading'; text: LocalizedText; size?: number }
+  | { type: 'paragraph'; text: LocalizedText }
+  | { type: 'preformatted'; text: LocalizedText; language?: string }
+  | { type: 'footer'; text: LocalizedText }
+  | { type: 'divider' }
+  | { type: 'quote'; blocks: BotUIRichBlock[]; credit?: LocalizedText }
+  | { type: 'list'; ordered?: boolean; items: BotUIRichListItem[] }
+  | {
+      type: 'table';
+      rows: BotUIRichTableCell[][];
+      bordered?: boolean;
+      striped?: boolean;
+      caption?: LocalizedText;
+    }
+  | { type: 'details'; summary: LocalizedText; blocks: BotUIRichBlock[]; open?: boolean };
+
+const tableCellSchema: z.ZodType<BotUIRichTableCell> = z.object({
+  text: localizedTextSchema,
+  header: z.boolean().optional(),
+  colspan: z.number().int().min(1).max(20).optional(),
+  rowspan: z.number().int().min(1).max(100).optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+  valign: z.enum(['top', 'middle', 'bottom']).optional()
+});
+
+const listItemSchema: z.ZodType<BotUIRichListItem> = z.object({
+  text: localizedTextSchema,
+  checked: z.boolean().optional(),
+  value: z.number().int().positive().optional()
+});
+
+export const richBlockSchema: z.ZodType<BotUIRichBlock> = z.lazy(() => z.union([
+  z.object({
+    type: z.literal('heading'),
+    text: localizedTextSchema,
+    size: z.number().int().min(1).max(6).optional()
+  }),
+  z.object({
+    type: z.literal('paragraph'),
+    text: localizedTextSchema
+  }),
+  z.object({
+    type: z.literal('preformatted'),
+    text: localizedTextSchema,
+    language: z.string().min(1).optional()
+  }),
+  z.object({
+    type: z.literal('footer'),
+    text: localizedTextSchema
+  }),
+  z.object({ type: z.literal('divider') }),
+  z.object({
+    type: z.literal('quote'),
+    blocks: z.array(richBlockSchema).min(1).max(100),
+    credit: localizedTextSchema.optional()
+  }),
+  z.object({
+    type: z.literal('list'),
+    ordered: z.boolean().default(false),
+    items: z.array(listItemSchema).min(1).max(100)
+  }),
+  z.object({
+    type: z.literal('table'),
+    rows: z.array(z.array(tableCellSchema).min(1).max(20)).min(1).max(100),
+    bordered: z.boolean().optional(),
+    striped: z.boolean().optional(),
+    caption: localizedTextSchema.optional()
+  }),
+  z.object({
+    type: z.literal('details'),
+    summary: localizedTextSchema,
+    blocks: z.array(richBlockSchema).min(1).max(100),
+    open: z.boolean().optional()
+  })
+]));
+
 export const buttonSchema = z.object({
-  text: z.string().min(1),
+  text: localizedTextSchema,
   action: z.string().min(1),
   style: buttonStyleSchema.default('default'),
   url: z.string().url().optional(),
@@ -12,17 +114,19 @@ export const buttonSchema = z.object({
 });
 
 export const contentFieldSchema = z.object({
-  label: z.string(),
-  value: z.string()
+  label: localizedTextSchema,
+  value: localizedTextSchema
 });
 
 export const contentSchema = z.object({
   mode: renderModeSchema.default('auto'),
-  title: z.string().optional(),
-  text: z.string().optional(),
+  title: localizedTextSchema.optional(),
+  text: localizedTextSchema.optional(),
   fields: z.array(contentFieldSchema).default([]),
   divider: z.boolean().default(false),
-  footer: z.string().optional()
+  footer: localizedTextSchema.optional(),
+  blocks: z.array(richBlockSchema).max(500).optional(),
+  is_rtl: z.boolean().optional()
 });
 
 export const pagePaginationSchema = z.object({
