@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { BotUIButton } from '@botui/schema';
 import { layoutButtons } from './layout.js';
+import { createFallbackTextResolver } from './text.js';
 
-function button(text: string, action: string, style: BotUIButton['style'] = 'default'): BotUIButton {
+function button(text: BotUIButton['text'], action: string, style: BotUIButton['style'] = 'default'): BotUIButton {
   return { text, action, style };
 }
 
@@ -32,6 +33,22 @@ describe('layoutButtons', () => {
     expect(layoutButtons([back, details, home])).toEqual([
       [details],
       [back, home]
+    ]);
+  });
+
+  it('uses resolved localized labels for long-text layout decisions', () => {
+    const localized = button(
+      { i18n: 'very.long', fallback: '这是一个非常非常长的按钮文字' },
+      'report.open'
+    );
+    const ordinary = button('详情', 'report.details');
+
+    expect(layoutButtons([localized, ordinary], {
+      resolveText: createFallbackTextResolver(),
+      longTextThreshold: 8
+    })).toEqual([
+      [localized],
+      [ordinary]
     ]);
   });
 });
