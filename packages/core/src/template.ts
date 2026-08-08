@@ -19,6 +19,12 @@ function resolvePath(data: Record<string, unknown>, path: string): unknown {
   return current;
 }
 
+export function interpolatePlain(template: string, data: Record<string, unknown>): string {
+  return template.replace(/\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}/g, (_match, path: string) => {
+    return String(resolvePath(data, path) ?? '');
+  });
+}
+
 export function interpolate(template: string, data: Record<string, unknown>): string {
   return template.replace(/\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}/g, (_match, path: string) => {
     return escapeTelegramHtml(resolvePath(data, path));
