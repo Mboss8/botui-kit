@@ -200,4 +200,17 @@ describe('renderRich', () => {
       }
     ]);
   });
+
+  it('rejects rendered Rich Message text above the Telegram 32768-character limit', () => {
+    const request = parseRenderRequest({
+      screen: 'report.too-long',
+      data: {},
+      content: {
+        mode: 'rich',
+        blocks: [{ type: 'paragraph', text: 'x'.repeat(32769) }]
+      }
+    });
+
+    expect(() => renderRich(request)).toThrow(/32768/);
+  });
 });
