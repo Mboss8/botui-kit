@@ -64,7 +64,7 @@ describe('renderRich', () => {
     expect(rendered.format).toBe('rich');
     expect(rendered.richMessage.is_rtl).toBe(true);
     expect(rendered.richMessage.blocks).toEqual([
-      { type: 'heading', text: '报告：&lt;Acme &amp; Co&gt;', size: 3 },
+      { type: 'heading', text: '报告：<Acme & Co>', size: 3 },
       { type: 'paragraph', text: '金额：100 USD' },
       { type: 'pre', text: 'const total = 100;', language: 'typescript' },
       { type: 'divider' },
@@ -109,7 +109,7 @@ describe('renderRich', () => {
       {
         type: 'details',
         summary: '更多信息',
-        blocks: [{ type: 'paragraph', text: '客户：&lt;Acme &amp; Co&gt;' }],
+        blocks: [{ type: 'paragraph', text: '客户：<Acme & Co>' }],
         is_open: true
       },
       { type: 'footer', text: 'BotUI' }
@@ -143,8 +143,8 @@ describe('renderRich', () => {
     });
 
     expect(rendered.richMessage.blocks).toEqual([
-      { type: 'heading', text: 'Report &lt;Alice&gt;', size: 2 },
-      { type: 'paragraph', text: 'Customer &lt;Alice&gt;' }
+      { type: 'heading', text: 'Report <Alice>', size: 2 },
+      { type: 'paragraph', text: 'Customer <Alice>' }
     ]);
   });
 
