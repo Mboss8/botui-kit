@@ -7,6 +7,12 @@ export type CursorControlState = {
   hasNext: boolean;
 };
 
+export type CursorControlPresentation = {
+  previous?: string;
+  refresh?: string;
+  next?: string;
+};
+
 function control(text: string, session: string, op: PaginationOp): ResolvedBotUIButton {
   return {
     text,
@@ -15,17 +21,20 @@ function control(text: string, session: string, op: PaginationOp): ResolvedBotUI
   };
 }
 
-export function buildCursorControls(state: CursorControlState): ResolvedBotUIButton[] {
+export function buildCursorControls(
+  state: CursorControlState,
+  presentation: CursorControlPresentation = {}
+): ResolvedBotUIButton[] {
   const controls: ResolvedBotUIButton[] = [];
 
   if (state.hasPrev) {
-    controls.push(control('◀️', state.session, 'p'));
+    controls.push(control(presentation.previous ?? '◀️', state.session, 'p'));
   }
 
-  controls.push(control('↻', state.session, 'r'));
+  controls.push(control(presentation.refresh ?? '↻', state.session, 'r'));
 
   if (state.hasNext) {
-    controls.push(control('▶️', state.session, 'n'));
+    controls.push(control(presentation.next ?? '▶️', state.session, 'n'));
   }
 
   return controls;
