@@ -125,6 +125,49 @@ describe('parseRenderRequest', () => {
     })).toThrow();
   });
 
+  it('requires at least one block when rich mode is explicit', () => {
+    expect(() => parseRenderRequest({
+      screen: 'x',
+      data: {},
+      content: { mode: 'rich' }
+    })).toThrow(/rich/i);
+  });
+
+  it('rejects more than 500 rich structural units including nested list items and table rows', () => {
+    const blocks = Array.from({ length: 5 }, (_, group) => ({
+      type: 'details',
+      summary: `group-${group}`,
+      blocks: Array.from({ length: 100 }, (_, index) => ({
+        type: 'paragraph',
+        text: `${group}-${index}`
+      }))
+    }));
+
+    expect(() => parseRenderRequest({
+      screen: 'x',
+      data: {},
+      content: { mode: 'rich', blocks }
+    })).toThrow(/500/);
+  });
+
+  it('rejects rich block nesting deeper than 16 levels', () => {
+    let nested: Record<string, unknown> = { type: 'paragraph', text: 'leaf' };
+
+    for (let depth = 0; depth < 16; depth += 1) {
+      nested = {
+        type: 'details',
+        summary: `level-${depth}`,
+        blocks: [nested]
+      };
+    }
+
+    expect(() => parseRenderRequest({
+      screen: 'x',
+      data: {},
+      content: { mode: 'rich', blocks: [nested] }
+    })).toThrow(/16/);
+  });
+
   it('accepts page pagination state', () => {
     const value = parseRenderRequest({
       screen: 'orders.list',
