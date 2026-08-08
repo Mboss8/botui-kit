@@ -1,4 +1,4 @@
-import type { BotUIButton } from '@botui/schema';
+import type { ResolvedBotUIButton } from '@botui/schema';
 import { encodeAction, type PaginationOp } from './action-codec.js';
 
 export type PageControlState = {
@@ -7,7 +7,7 @@ export type PageControlState = {
   totalPages: number;
 };
 
-function control(text: string, session: string, op: PaginationOp): BotUIButton {
+function control(text: string, session: string, op: PaginationOp): ResolvedBotUIButton {
   return {
     text,
     action: encodeAction({ version: 'v1', domain: 'p', session, op }),
@@ -15,12 +15,12 @@ function control(text: string, session: string, op: PaginationOp): BotUIButton {
   };
 }
 
-export function buildPageControls(state: PageControlState): BotUIButton[] {
+export function buildPageControls(state: PageControlState): ResolvedBotUIButton[] {
   if (!Number.isInteger(state.page) || !Number.isInteger(state.totalPages) || state.page < 1 || state.totalPages < 1 || state.page > state.totalPages) {
     throw new Error('invalid page pagination state');
   }
 
-  const controls: BotUIButton[] = [];
+  const controls: ResolvedBotUIButton[] = [];
 
   if (state.page > 1) {
     controls.push(control('⏮', state.session, 'f'));
