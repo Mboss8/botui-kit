@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseRenderRequest } from './schema.js';
 
 describe('parseRenderRequest', () => {
-  it('accepts a minimal V1 screen request', () => {
+  it('keeps accepting the v0.1 regular screen shape', () => {
     const value = parseRenderRequest({
       screen: 'order.detail',
       theme: 'default',
@@ -16,12 +16,111 @@ describe('parseRenderRequest', () => {
     expect(value.actions[0]?.style).toBe('default');
   });
 
+  it('accepts localized text and semantic rich blocks', () => {
+    const value = parseRenderRequest({
+      screen: 'report.detail',
+      locale: 'en-US',
+      data: { customer: 'Acme' },
+      content: {
+        mode: 'rich',
+        is_rtl: false,
+        blocks: [
+          { type: 'heading', text: { i18n: 'report.title', fallback: 'Report' }, size: 2 },
+          { type: 'paragraph', text: 'Customer: {{ customer }}' },
+          { type: 'divider' },
+          { type: 'preformatted', text: 'const ok = true;', language: 'typescript' },
+          { type: 'footer', text: { i18n: 'report.footer' } }
+        ]
+      },
+      actions: [
+        { text: { i18n: 'navigation.back', fallback: 'Back' }, action: 'navigation.back', style: 'default' }
+      ]
+    });
+
+    expect(value.content.blocks?.[0]?.type).toBe('heading');
+    expect(value.actions[0]?.text).toEqual({ i18n: 'navigation.back', fallback: 'Back' });
+  });
+
+  it('accepts nested details, list, quote and table blocks', () => {
+    const value = parseRenderRequest({
+      screen: 'report.complex',
+      data: {},
+      content: {
+        mode: 'rich',
+        blocks: [
+          {
+            type: 'details',
+            summary: 'More',
+            open: true,
+            blocks: [
+              {
+                type: 'quote',
+                credit: 'Ops',
+                blocks: [{ type: 'paragraph', text: 'Nested text' }]
+              }
+            ]
+          },
+          {
+            type: 'list',
+            ordered: true,
+            items: [
+              { text: 'First' },
+              { text: 'Second', checked: true }
+            ]
+          },
+          {
+            type: 'table',
+            bordered: true,
+            striped: true,
+            caption: 'Summary',
+            rows: [
+              [
+                { text: 'Name', header: true, align: 'left', valign: 'top' },
+                { text: 'Value', header: true }
+              ],
+              [{ text: 'A' }, { text: '1' }]
+            ]
+          }
+        ]
+      }
+    });
+
+    expect(value.content.blocks).toHaveLength(3);
+    expect(value.content.blocks?.[0]?.type).toBe('details');
+    expect(value.content.blocks?.[2]?.type).toBe('table');
+  });
+
   it('rejects unsupported button styles', () => {
     expect(() => parseRenderRequest({
       screen: 'x',
       data: {},
       content: { mode: 'regular', title: 'x' },
       actions: [{ text: 'x', action: 'x', style: '#ff00ff' }]
+    })).toThrow();
+  });
+
+  it('rejects invalid rich heading sizes', () => {
+    expect(() => parseRenderRequest({
+      screen: 'x',
+      data: {},
+      content: {
+        mode: 'rich',
+        blocks: [{ type: 'heading', text: 'x', size: 7 }]
+      }
+    })).toThrow();
+  });
+
+  it('rejects rich tables wider than Telegram supports', () => {
+    expect(() => parseRenderRequest({
+      screen: 'x',
+      data: {},
+      content: {
+        mode: 'rich',
+        blocks: [{
+          type: 'table',
+          rows: [[...Array.from({ length: 21 }, (_, index) => ({ text: String(index) }))]]
+        }]
+      }
     })).toThrow();
   });
 
