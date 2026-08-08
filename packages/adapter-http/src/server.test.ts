@@ -65,6 +65,49 @@ describe('HTTP adapter', () => {
     await app.close();
   });
 
+  it('uses shared translations and theme overrides configured once on the HTTP service', async () => {
+    const app = buildServer({
+      renderOptions: {
+        translations: {
+          'en-US': {
+            'report.title': 'Shared report: {{ customer }}',
+            'navigation.back': 'Back'
+          }
+        },
+        themeOverrides: {
+          rich: { defaultHeadingSize: 3 }
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/render',
+      payload: {
+        screen: 'report.shared',
+        locale: 'en-US',
+        data: { customer: '<Acme>' },
+        content: {
+          mode: 'rich',
+          blocks: [
+            { type: 'heading', text: { i18n: 'report.title' } }
+          ]
+        },
+        actions: [
+          { text: { i18n: 'navigation.back' }, action: 'navigation.back', style: 'default' }
+        ]
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.operations[0].payload.rich_message.blocks).toEqual([
+      { type: 'heading', text: 'Shared report: <Acme>', size: 3 }
+    ]);
+    expect(body.operations[0].payload.reply_markup.inline_keyboard[0][0].text).toBe('Back');
+    await app.close();
+  });
+
   it('returns a stable 400 envelope for invalid DSL', async () => {
     const app = buildServer();
     const response = await app.inject({
