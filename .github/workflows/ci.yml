@@ -23,3 +23,28 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm build
+      - name: Verify Node examples
+        run: |
+          for file in examples/node/*.mjs; do node --check "$file"; done
+          node examples/node/render-order.mjs > /tmp/render-plan.json
+          node -e "const p=require('/tmp/render-plan.json'); if(p.version!=='1'||p.operations?.[0]?.type!=='sendMessage') process.exit(1)"
+      - name: Verify Python and shell examples
+        run: |
+          python3 -m py_compile examples/python/render_order.py
+          bash -n examples/raw-http/render-order.sh
+      - name: Verify Go example formatting
+        run: |
+          diff="$(gofmt -d examples/go/main.go)"
+          if [ -n "$diff" ]; then
+            printf '%s\n' "$diff"
+            exit 1
+          fi
+      - name: Scan source for obvious secrets
+        run: |
+          if grep -RInE '(BOT_TOKEN|api[_-]?key|secret[[:space:]]*=|Bearer[[:space:]])' . \
+            --exclude-dir=node_modules \
+            --exclude-dir=dist \
+            --exclude='*.md'; then
+            echo 'Potential secret-like value found'
+            exit 1
+          fi
