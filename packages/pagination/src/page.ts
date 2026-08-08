@@ -7,6 +7,13 @@ export type PageControlState = {
   totalPages: number;
 };
 
+export type PageControlPresentation = {
+  first?: string;
+  previous?: string;
+  next?: string;
+  last?: string;
+};
+
 function control(text: string, session: string, op: PaginationOp): ResolvedBotUIButton {
   return {
     text,
@@ -15,7 +22,10 @@ function control(text: string, session: string, op: PaginationOp): ResolvedBotUI
   };
 }
 
-export function buildPageControls(state: PageControlState): ResolvedBotUIButton[] {
+export function buildPageControls(
+  state: PageControlState,
+  presentation: PageControlPresentation = {}
+): ResolvedBotUIButton[] {
   if (!Number.isInteger(state.page) || !Number.isInteger(state.totalPages) || state.page < 1 || state.totalPages < 1 || state.page > state.totalPages) {
     throw new Error('invalid page pagination state');
   }
@@ -23,15 +33,15 @@ export function buildPageControls(state: PageControlState): ResolvedBotUIButton[
   const controls: ResolvedBotUIButton[] = [];
 
   if (state.page > 1) {
-    controls.push(control('⏮', state.session, 'f'));
-    controls.push(control('◀️', state.session, 'p'));
+    controls.push(control(presentation.first ?? '⏮', state.session, 'f'));
+    controls.push(control(presentation.previous ?? '◀️', state.session, 'p'));
   }
 
   controls.push(control(`${state.page}/${state.totalPages}`, state.session, 'r'));
 
   if (state.page < state.totalPages) {
-    controls.push(control('▶️', state.session, 'n'));
-    controls.push(control('⏭', state.session, 'l'));
+    controls.push(control(presentation.next ?? '▶️', state.session, 'n'));
+    controls.push(control(presentation.last ?? '⏭', state.session, 'l'));
   }
 
   return controls;
