@@ -42,6 +42,8 @@ jobs:
       - name: Scan source for obvious secrets
         run: |
           if grep -RInE '(BOT_TOKEN|api[_-]?key|secret[[:space:]]*=|Bearer[[:space:]])' . \
+            --exclude-dir=.git \
+            --exclude-dir=.github \
             --exclude-dir=node_modules \
             --exclude-dir=dist \
             --exclude='*.md'; then
