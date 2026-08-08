@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import type { RenderedContent } from '@botui/core';
-import type { BotUIButton } from '@botui/schema';
+import type { ResolvedBotUIButton } from '@botui/schema';
 
 export type TelegramInlineKeyboardButton = {
   text: string;
@@ -42,7 +42,7 @@ export type RenderPlan = {
 
 export type CompileTelegramInput = {
   content: RenderedContent;
-  buttons: BotUIButton[][];
+  buttons: ResolvedBotUIButton[][];
 };
 
 export type CompileTelegramOptions = {
@@ -51,7 +51,7 @@ export type CompileTelegramOptions = {
   messageId?: number;
 };
 
-function compileButton(button: BotUIButton): TelegramInlineKeyboardButton {
+function compileButton(button: ResolvedBotUIButton): TelegramInlineKeyboardButton {
   const compiled: TelegramInlineKeyboardButton = { text: button.text };
 
   if (button.url) {
@@ -70,7 +70,7 @@ function compileButton(button: BotUIButton): TelegramInlineKeyboardButton {
   return compiled;
 }
 
-function compileKeyboard(rows: BotUIButton[][]): TelegramInlineKeyboardMarkup | undefined {
+function compileKeyboard(rows: ResolvedBotUIButton[][]): TelegramInlineKeyboardMarkup | undefined {
   if (rows.length === 0) {
     return undefined;
   }
