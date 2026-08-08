@@ -171,6 +171,7 @@ export const renderRequestSchema = z.object({
 });
 
 export type BotUIButton = z.infer<typeof buttonSchema>;
+export type ResolvedBotUIButton = Omit<BotUIButton, 'text'> & { text: string };
 export type BotUIContent = z.infer<typeof contentSchema>;
 export type PagePagination = z.infer<typeof pagePaginationSchema>;
 export type CursorPagination = z.infer<typeof cursorPaginationSchema>;
