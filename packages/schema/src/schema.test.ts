@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRenderRequest } from './schema.js';
 
+// v0.2 contract tests intentionally land before implementation (TDD RED).
 describe('parseRenderRequest', () => {
   it('keeps accepting the v0.1 regular screen shape', () => {
     const value = parseRenderRequest({
