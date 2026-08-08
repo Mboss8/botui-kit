@@ -1,0 +1,18 @@
+{
+  "name": "@botui/adapter-http",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@botui/runtime": "workspace:*",
+    "fastify": "^5.0.0"
+  }
+}
