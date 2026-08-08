@@ -1,0 +1,18 @@
+{
+  "name": "@botui/i18n",
+  "version": "0.2.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@botui/core": "workspace:*",
+    "@botui/schema": "workspace:*"
+  }
+}
