@@ -1,15 +1,15 @@
 import { layoutButtons, renderRegular } from '@botui/core';
 import { buildCursorControls, buildPageControls } from '@botui/pagination';
-import { parseRenderRequest, type BotUIButton, type BotUIRenderRequest } from '@botui/schema';
+import { parseRenderRequest, type BotUIRenderRequest, type ResolvedBotUIButton } from '@botui/schema';
 import { compileTelegram, type CompileTelegramOptions, type RenderPlan } from '@botui/telegram';
 
 export type RenderOptions = CompileTelegramOptions;
 
-function isNavigationRow(row: BotUIButton[]): boolean {
+function isNavigationRow(row: ResolvedBotUIButton[]): boolean {
   return row.length > 0 && row.every((button) => button.action.startsWith('navigation.'));
 }
 
-function paginationControls(request: BotUIRenderRequest): BotUIButton[] {
+function paginationControls(request: BotUIRenderRequest): ResolvedBotUIButton[] {
   const pagination = request.pagination;
   if (!pagination) return [];
 
@@ -28,7 +28,7 @@ function paginationControls(request: BotUIRenderRequest): BotUIButton[] {
   });
 }
 
-function buildKeyboard(request: BotUIRenderRequest): BotUIButton[][] {
+function buildKeyboard(request: BotUIRenderRequest): ResolvedBotUIButton[][] {
   const actionRows = layoutButtons(request.actions);
   const navigationRows = actionRows.filter(isNavigationRow);
   const normalRows = actionRows.filter((row) => !isNavigationRow(row));
