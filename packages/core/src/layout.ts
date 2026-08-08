@@ -1,21 +1,28 @@
-import type { BotUIButton } from '@botui/schema';
+import type { BotUIButton, ResolvedBotUIButton } from '@botui/schema';
+import { createFallbackTextResolver, type TextResolver } from './text.js';
 
 export type LayoutOptions = {
   maxPerRow?: 1 | 2;
   longTextThreshold?: number;
+  resolveText?: TextResolver;
+};
+
+type ResolvedLayoutOptions = {
+  maxPerRow: 1 | 2;
+  longTextThreshold: number;
 };
 
 function textLength(text: string): number {
   return Array.from(text).length;
 }
 
-function isNavigation(button: BotUIButton): boolean {
+function isNavigation(button: ResolvedBotUIButton): boolean {
   return button.action.startsWith('navigation.');
 }
 
-function layoutSection(buttons: BotUIButton[], options: Required<LayoutOptions>): BotUIButton[][] {
-  const rows: BotUIButton[][] = [];
-  let pending: BotUIButton[] = [];
+function layoutSection(buttons: ResolvedBotUIButton[], options: ResolvedLayoutOptions): ResolvedBotUIButton[][] {
+  const rows: ResolvedBotUIButton[][] = [];
+  let pending: ResolvedBotUIButton[] = [];
 
   const flush = () => {
     if (pending.length > 0) {
@@ -46,17 +53,22 @@ function layoutSection(buttons: BotUIButton[], options: Required<LayoutOptions>)
   return rows;
 }
 
-export function layoutButtons(buttons: BotUIButton[], options: LayoutOptions = {}): BotUIButton[][] {
-  const resolved: Required<LayoutOptions> = {
+export function layoutButtons(buttons: BotUIButton[], options: LayoutOptions = {}): ResolvedBotUIButton[][] {
+  const resolveText = options.resolveText ?? createFallbackTextResolver();
+  const resolvedOptions: ResolvedLayoutOptions = {
     maxPerRow: options.maxPerRow ?? 2,
     longTextThreshold: options.longTextThreshold ?? 14
   };
+  const resolvedButtons: ResolvedBotUIButton[] = buttons.map((button) => ({
+    ...button,
+    text: resolveText(button.text)
+  }));
 
-  const actions = buttons.filter((button) => !isNavigation(button));
-  const navigation = buttons.filter(isNavigation);
+  const actions = resolvedButtons.filter((button) => !isNavigation(button));
+  const navigation = resolvedButtons.filter(isNavigation);
 
   return [
-    ...layoutSection(actions, resolved),
-    ...layoutSection(navigation, resolved)
+    ...layoutSection(actions, resolvedOptions),
+    ...layoutSection(navigation, resolvedOptions)
   ];
 }
