@@ -1,12 +1,14 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import { render } from '@botui/runtime';
+import { render, type RenderOptions } from '@botui/runtime';
 
 export type BotUIHttpServerOptions = {
   logger?: boolean;
+  renderOptions?: RenderOptions;
 };
 
 export function buildServer(options: BotUIHttpServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: options.logger ?? false });
+  const renderOptions = options.renderOptions ?? {};
 
   app.get('/healthz', async () => {
     return { status: 'ok', service: 'botui' };
@@ -14,7 +16,7 @@ export function buildServer(options: BotUIHttpServerOptions = {}): FastifyInstan
 
   app.post('/v1/render', async (request, reply) => {
     try {
-      return render(request.body);
+      return render(request.body, renderOptions);
     } catch {
       return reply.code(400).send({
         error: {
