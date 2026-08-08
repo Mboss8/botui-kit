@@ -28,10 +28,13 @@ jobs:
           for file in examples/node/*.mjs; do node --check "$file"; done
           node examples/node/render-order.mjs > /tmp/render-plan.json
           node -e "const p=require('/tmp/render-plan.json'); if(p.version!=='1'||p.operations?.[0]?.type!=='sendMessage') process.exit(1)"
+          node examples/node/render-rich-report.mjs > /tmp/rich-render-plan.json
+          node -e "const p=require('/tmp/rich-render-plan.json'); if(p.version!=='1'||p.operations?.[0]?.type!=='sendRichMessage') process.exit(1)"
       - name: Verify Python and shell examples
         run: |
           python3 -m py_compile examples/python/render_order.py
           bash -n examples/raw-http/render-order.sh
+          bash -n examples/raw-http/render-rich-report.sh
       - name: Verify Go example formatting
         run: |
           diff="$(gofmt -d examples/go/main.go)"

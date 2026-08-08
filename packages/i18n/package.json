@@ -1,5 +1,5 @@
 {
-  "name": "@botui/runtime",
+  "name": "@botui/i18n",
   "version": "0.2.0",
   "type": "module",
   "exports": {
@@ -13,10 +13,6 @@
   },
   "dependencies": {
     "@botui/core": "workspace:*",
-    "@botui/i18n": "workspace:*",
-    "@botui/pagination": "workspace:*",
-    "@botui/schema": "workspace:*",
-    "@botui/telegram": "workspace:*",
-    "@botui/themes": "workspace:*"
+    "@botui/schema": "workspace:*"
   }
 }

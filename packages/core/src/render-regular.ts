@@ -1,33 +1,45 @@
 import type { BotUIRenderRequest } from '@botui/schema';
 import { interpolate } from './template.js';
+import { createFallbackTextResolver, type TextResolver } from './text.js';
 
 export type RenderedContent = {
   format: 'html';
   text: string;
 };
 
-export function renderRegular(request: BotUIRenderRequest): RenderedContent {
+export type RenderRegularOptions = {
+  resolveText?: TextResolver;
+  divider?: string;
+};
+
+export function renderRegular(
+  request: BotUIRenderRequest,
+  options: RenderRegularOptions = {}
+): RenderedContent {
   const { content, data } = request;
+  const resolveText = options.resolveText ?? createFallbackTextResolver();
   const blocks: string[] = [];
 
   if (content.title) {
-    blocks.push(`<b>${interpolate(content.title, data)}</b>`);
+    blocks.push(`<b>${interpolate(resolveText(content.title), data)}</b>`);
   }
 
   if (content.text) {
-    blocks.push(interpolate(content.text, data));
+    blocks.push(interpolate(resolveText(content.text), data));
   }
 
   for (const field of content.fields) {
-    blocks.push(`<b>${interpolate(field.label, data)}</b>\n${interpolate(field.value, data)}`);
+    blocks.push(
+      `<b>${interpolate(resolveText(field.label), data)}</b>\n${interpolate(resolveText(field.value), data)}`
+    );
   }
 
   if (content.divider) {
-    blocks.push('──────────');
+    blocks.push(options.divider ?? '──────────');
   }
 
   if (content.footer) {
-    blocks.push(interpolate(content.footer, data));
+    blocks.push(interpolate(resolveText(content.footer), data));
   }
 
   return {

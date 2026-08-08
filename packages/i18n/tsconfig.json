@@ -9,10 +9,6 @@
   "exclude": ["src/**/*.test.ts"],
   "references": [
     { "path": "../schema" },
-    { "path": "../core" },
-    { "path": "../i18n" },
-    { "path": "../themes" },
-    { "path": "../pagination" },
-    { "path": "../telegram" }
+    { "path": "../core" }
   ]
 }

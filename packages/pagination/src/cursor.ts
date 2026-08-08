@@ -1,4 +1,4 @@
-import type { BotUIButton } from '@botui/schema';
+import type { ResolvedBotUIButton } from '@botui/schema';
 import { encodeAction, type PaginationOp } from './action-codec.js';
 
 export type CursorControlState = {
@@ -7,7 +7,13 @@ export type CursorControlState = {
   hasNext: boolean;
 };
 
-function control(text: string, session: string, op: PaginationOp): BotUIButton {
+export type CursorControlPresentation = {
+  previous?: string;
+  refresh?: string;
+  next?: string;
+};
+
+function control(text: string, session: string, op: PaginationOp): ResolvedBotUIButton {
   return {
     text,
     action: encodeAction({ version: 'v1', domain: 'p', session, op }),
@@ -15,17 +21,20 @@ function control(text: string, session: string, op: PaginationOp): BotUIButton {
   };
 }
 
-export function buildCursorControls(state: CursorControlState): BotUIButton[] {
-  const controls: BotUIButton[] = [];
+export function buildCursorControls(
+  state: CursorControlState,
+  presentation: CursorControlPresentation = {}
+): ResolvedBotUIButton[] {
+  const controls: ResolvedBotUIButton[] = [];
 
   if (state.hasPrev) {
-    controls.push(control('◀️', state.session, 'p'));
+    controls.push(control(presentation.previous ?? '◀️', state.session, 'p'));
   }
 
-  controls.push(control('↻', state.session, 'r'));
+  controls.push(control(presentation.refresh ?? '↻', state.session, 'r'));
 
   if (state.hasNext) {
-    controls.push(control('▶️', state.session, 'n'));
+    controls.push(control(presentation.next ?? '▶️', state.session, 'n'));
   }
 
   return controls;

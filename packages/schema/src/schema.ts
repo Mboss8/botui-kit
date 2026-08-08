@@ -3,8 +3,110 @@ import { z } from 'zod';
 export const renderModeSchema = z.enum(['auto', 'regular', 'rich', 'media', 'miniapp']);
 export const buttonStyleSchema = z.enum(['primary', 'success', 'danger', 'default']);
 
+export const localizedTextSchema = z.union([
+  z.string(),
+  z.object({
+    i18n: z.string().min(1),
+    fallback: z.string().optional()
+  }).strict()
+]);
+
+export type LocalizedText = z.infer<typeof localizedTextSchema>;
+
+export type BotUIRichTableCell = {
+  text: LocalizedText;
+  header?: boolean | undefined;
+  colspan?: number | undefined;
+  rowspan?: number | undefined;
+  align?: 'left' | 'center' | 'right' | undefined;
+  valign?: 'top' | 'middle' | 'bottom' | undefined;
+};
+
+export type BotUIRichListItem = {
+  text: LocalizedText;
+  checked?: boolean | undefined;
+  value?: number | undefined;
+};
+
+export type BotUIRichBlock =
+  | { type: 'heading'; text: LocalizedText; size?: number | undefined }
+  | { type: 'paragraph'; text: LocalizedText }
+  | { type: 'preformatted'; text: LocalizedText; language?: string | undefined }
+  | { type: 'footer'; text: LocalizedText }
+  | { type: 'divider' }
+  | { type: 'quote'; blocks: BotUIRichBlock[]; credit?: LocalizedText | undefined }
+  | { type: 'list'; ordered?: boolean | undefined; items: BotUIRichListItem[] }
+  | {
+      type: 'table';
+      rows: BotUIRichTableCell[][];
+      bordered?: boolean | undefined;
+      striped?: boolean | undefined;
+      caption?: LocalizedText | undefined;
+    }
+  | { type: 'details'; summary: LocalizedText; blocks: BotUIRichBlock[]; open?: boolean | undefined };
+
+const tableCellSchema: z.ZodType<BotUIRichTableCell> = z.object({
+  text: localizedTextSchema,
+  header: z.boolean().optional(),
+  colspan: z.number().int().min(1).max(20).optional(),
+  rowspan: z.number().int().min(1).max(100).optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+  valign: z.enum(['top', 'middle', 'bottom']).optional()
+});
+
+const listItemSchema: z.ZodType<BotUIRichListItem> = z.object({
+  text: localizedTextSchema,
+  checked: z.boolean().optional(),
+  value: z.number().int().positive().optional()
+});
+
+export const richBlockSchema: z.ZodType<BotUIRichBlock> = z.lazy(() => z.union([
+  z.object({
+    type: z.literal('heading'),
+    text: localizedTextSchema,
+    size: z.number().int().min(1).max(6).optional()
+  }),
+  z.object({
+    type: z.literal('paragraph'),
+    text: localizedTextSchema
+  }),
+  z.object({
+    type: z.literal('preformatted'),
+    text: localizedTextSchema,
+    language: z.string().min(1).optional()
+  }),
+  z.object({
+    type: z.literal('footer'),
+    text: localizedTextSchema
+  }),
+  z.object({ type: z.literal('divider') }),
+  z.object({
+    type: z.literal('quote'),
+    blocks: z.array(richBlockSchema).min(1).max(100),
+    credit: localizedTextSchema.optional()
+  }),
+  z.object({
+    type: z.literal('list'),
+    ordered: z.boolean().default(false),
+    items: z.array(listItemSchema).min(1).max(100)
+  }),
+  z.object({
+    type: z.literal('table'),
+    rows: z.array(z.array(tableCellSchema).min(1).max(20)).min(1).max(100),
+    bordered: z.boolean().optional(),
+    striped: z.boolean().optional(),
+    caption: localizedTextSchema.optional()
+  }),
+  z.object({
+    type: z.literal('details'),
+    summary: localizedTextSchema,
+    blocks: z.array(richBlockSchema).min(1).max(100),
+    open: z.boolean().optional()
+  })
+]));
+
 export const buttonSchema = z.object({
-  text: z.string().min(1),
+  text: localizedTextSchema,
   action: z.string().min(1),
   style: buttonStyleSchema.default('default'),
   url: z.string().url().optional(),
@@ -12,17 +114,19 @@ export const buttonSchema = z.object({
 });
 
 export const contentFieldSchema = z.object({
-  label: z.string(),
-  value: z.string()
+  label: localizedTextSchema,
+  value: localizedTextSchema
 });
 
 export const contentSchema = z.object({
   mode: renderModeSchema.default('auto'),
-  title: z.string().optional(),
-  text: z.string().optional(),
+  title: localizedTextSchema.optional(),
+  text: localizedTextSchema.optional(),
   fields: z.array(contentFieldSchema).default([]),
   divider: z.boolean().default(false),
-  footer: z.string().optional()
+  footer: localizedTextSchema.optional(),
+  blocks: z.array(richBlockSchema).max(500).optional(),
+  is_rtl: z.boolean().optional()
 });
 
 export const pagePaginationSchema = z.object({
@@ -55,6 +159,48 @@ export const cursorPaginationSchema = z.object({
 
 export const paginationSchema = z.union([pagePaginationSchema, cursorPaginationSchema]);
 
+type RichStructureStats = {
+  units: number;
+  maxDepth: number;
+};
+
+function inspectRichStructure(
+  blocks: BotUIRichBlock[],
+  depth = 1
+): RichStructureStats {
+  let units = 0;
+  let maxDepth = 0;
+
+  for (const block of blocks) {
+    units += 1;
+    maxDepth = Math.max(maxDepth, depth);
+
+    if (block.type === 'quote' || block.type === 'details') {
+      const nested = inspectRichStructure(block.blocks, depth + 1);
+      units += nested.units;
+      maxDepth = Math.max(maxDepth, nested.maxDepth);
+      continue;
+    }
+
+    if (block.type === 'list') {
+      // Each semantic list item becomes an InputRichBlockListItem containing
+      // one paragraph InputRichBlock in the Telegram payload.
+      units += block.items.length * 2;
+      if (block.items.length > 0) {
+        maxDepth = Math.max(maxDepth, depth + 1);
+      }
+      continue;
+    }
+
+    if (block.type === 'table') {
+      // Telegram counts table rows toward the Rich Message structural limit.
+      units += block.rows.length;
+    }
+  }
+
+  return { units, maxDepth };
+}
+
 export const renderRequestSchema = z.object({
   version: z.literal('1').default('1'),
   screen: z.string().min(1),
@@ -64,9 +210,43 @@ export const renderRequestSchema = z.object({
   content: contentSchema,
   actions: z.array(buttonSchema).default([]),
   pagination: paginationSchema.optional()
+}).superRefine((value, ctx) => {
+  const blocks = value.content.blocks;
+
+  if (value.content.mode === 'rich' && (!blocks || blocks.length === 0)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'blocks'],
+      message: 'rich mode requires at least one rich block'
+    });
+    return;
+  }
+
+  if (!blocks || blocks.length === 0) {
+    return;
+  }
+
+  const stats = inspectRichStructure(blocks);
+
+  if (stats.units > 500) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'blocks'],
+      message: 'rich message exceeds Telegram 500 structural unit limit'
+    });
+  }
+
+  if (stats.maxDepth > 16) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['content', 'blocks'],
+      message: 'rich message exceeds Telegram 16-level nesting limit'
+    });
+  }
 });
 
 export type BotUIButton = z.infer<typeof buttonSchema>;
+export type ResolvedBotUIButton = Omit<BotUIButton, 'text'> & { text: string };
 export type BotUIContent = z.infer<typeof contentSchema>;
 export type PagePagination = z.infer<typeof pagePaginationSchema>;
 export type CursorPagination = z.infer<typeof cursorPaginationSchema>;

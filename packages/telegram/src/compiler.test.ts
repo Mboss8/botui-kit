@@ -29,7 +29,44 @@ describe('compileTelegram', () => {
     });
   });
 
-  it('compiles an existing message target into editMessageText', () => {
+  it('compiles structured rich content into sendRichMessage with the same inline keyboard semantics', () => {
+    const plan = compileTelegram({
+      content: {
+        format: 'rich',
+        richMessage: {
+          blocks: [
+            { type: 'heading', text: '订单报告', size: 2 },
+            { type: 'paragraph', text: '已完成' }
+          ]
+        }
+      },
+      buttons: [[
+        { text: '确认', action: 'order.confirm', style: 'success' },
+        { text: '返回', action: 'navigation.back', style: 'default' }
+      ]]
+    }, { mode: 'send', chatId: 555 });
+
+    expect(plan.operations[0]).toEqual({
+      type: 'sendRichMessage',
+      payload: {
+        chat_id: 555,
+        rich_message: {
+          blocks: [
+            { type: 'heading', text: '订单报告', size: 2 },
+            { type: 'paragraph', text: '已完成' }
+          ]
+        },
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '确认', callback_data: 'order.confirm', style: 'success' },
+            { text: '返回', callback_data: 'navigation.back' }
+          ]]
+        }
+      }
+    });
+  });
+
+  it('compiles an existing regular message target into editMessageText', () => {
     const plan = compileTelegram({
       content: { format: 'html', text: '第 2 页' },
       buttons: []
@@ -41,6 +78,33 @@ describe('compileTelegram', () => {
       message_id: 99,
       text: '第 2 页'
     });
+  });
+
+  it('edits rich content through editMessageText.rich_message without text or parse_mode', () => {
+    const plan = compileTelegram({
+      content: {
+        format: 'rich',
+        richMessage: {
+          blocks: [{ type: 'paragraph', text: '第 2 页' }],
+          is_rtl: true
+        }
+      },
+      buttons: []
+    }, { mode: 'edit', chatId: 555, messageId: 99 });
+
+    expect(plan.operations[0]).toEqual({
+      type: 'editMessageText',
+      payload: {
+        chat_id: 555,
+        message_id: 99,
+        rich_message: {
+          blocks: [{ type: 'paragraph', text: '第 2 页' }],
+          is_rtl: true
+        }
+      }
+    });
+    expect(plan.operations[0]?.payload).not.toHaveProperty('text');
+    expect(plan.operations[0]?.payload).not.toHaveProperty('parse_mode');
   });
 
   it('rejects callback_data above Telegram 64-byte limit', () => {

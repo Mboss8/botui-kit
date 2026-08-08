@@ -30,6 +30,84 @@ describe('HTTP adapter', () => {
     await app.close();
   });
 
+  it('renders the extended rich DSL through the same POST /v1/render endpoint', async () => {
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/render',
+      payload: {
+        screen: 'report.detail',
+        theme: 'business',
+        locale: 'zh-CN',
+        data: { customer: '<Acme & Co>' },
+        content: {
+          mode: 'rich',
+          blocks: [
+            { type: 'heading', text: { i18n: 'report.title', fallback: '订单报告：{{ customer }}' } },
+            { type: 'paragraph', text: '状态：已完成' }
+          ]
+        },
+        actions: [
+          { text: { i18n: 'navigation.back', fallback: '返回' }, action: 'navigation.back', style: 'default' }
+        ]
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.version).toBe('1');
+    expect(body.operations[0].type).toBe('sendRichMessage');
+    expect(body.operations[0].payload.rich_message.blocks).toEqual([
+      { type: 'heading', text: '订单报告：<Acme & Co>', size: 2 },
+      { type: 'paragraph', text: '状态：已完成' }
+    ]);
+    expect(body.operations[0].payload.reply_markup.inline_keyboard[0][0].text).toBe('返回');
+    await app.close();
+  });
+
+  it('uses shared translations and theme overrides configured once on the HTTP service', async () => {
+    const app = buildServer({
+      renderOptions: {
+        translations: {
+          'en-US': {
+            'report.title': 'Shared report: {{ customer }}',
+            'navigation.back': 'Back'
+          }
+        },
+        themeOverrides: {
+          rich: { defaultHeadingSize: 3 }
+        }
+      }
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/render',
+      payload: {
+        screen: 'report.shared',
+        locale: 'en-US',
+        data: { customer: '<Acme>' },
+        content: {
+          mode: 'rich',
+          blocks: [
+            { type: 'heading', text: { i18n: 'report.title' } }
+          ]
+        },
+        actions: [
+          { text: { i18n: 'navigation.back' }, action: 'navigation.back', style: 'default' }
+        ]
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.operations[0].payload.rich_message.blocks).toEqual([
+      { type: 'heading', text: 'Shared report: <Acme>', size: 3 }
+    ]);
+    expect(body.operations[0].payload.reply_markup.inline_keyboard[0][0].text).toBe('Back');
+    await app.close();
+  });
+
   it('returns a stable 400 envelope for invalid DSL', async () => {
     const app = buildServer();
     const response = await app.inject({
