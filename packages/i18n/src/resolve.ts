@@ -32,19 +32,16 @@ export function createI18n(
   const defaultLocale = options.defaultLocale ?? 'zh-CN';
 
   return {
-    resolve(value, locale, data = {}) {
-      if (typeof value === 'string') {
-        return interpolate(value, data);
-      }
+    resolve(value, locale, data) {
+      const template = typeof value === 'string'
+        ? value
+        : lookup(
+            registry,
+            buildLocaleFallbackChain(locale, defaultLocale),
+            value.i18n
+          ) ?? value.fallback ?? value.i18n;
 
-      const translated = lookup(
-        registry,
-        buildLocaleFallbackChain(locale, defaultLocale),
-        value.i18n
-      );
-      const template = translated ?? value.fallback ?? value.i18n;
-
-      return interpolate(template, data);
+      return data === undefined ? template : interpolate(template, data);
     }
   };
 }
